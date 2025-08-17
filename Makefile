@@ -1,70 +1,28 @@
-# Compiler and flags
-CC = gcc
-CFLAGS = -Wall -Wextra -std=c99 -g -Werror -Wno-unused-function
-TARGET = xeltu
+CC := gcc
 
-# Source directory
-SRCDIR = src
-OBJDIR = .obj
+CFLAGS := -g -Wall -Wextra -Werror
 
-# Source files (with path)
-SOURCES = $(SRCDIR)/main.c $(SRCDIR)/debug.c $(SRCDIR)/function.c $(SRCDIR)/lexer.c $(SRCDIR)/memory.c $(SRCDIR)/parser.c $(SRCDIR)/value.c
+SRCDIR := src
+OBJDIR := obj
 
-# Object files (automatically generated from source files)
-OBJECTS = $(patsubst $(SRCDIR)/%.c,$(OBJDIR)/%.o,$(SOURCES))
+TARGET := xeltu
 
-# Header files (for dependency tracking)
-HEADERS = $(SRCDIR)/common.h $(SRCDIR)/debug.h $(SRCDIR)/function.h $(SRCDIR)/lexer.h $(SRCDIR)/memory.h $(SRCDIR)/parser.h $(SRCDIR)/value.h
+SOURCES := $(wildcard $(SRCDIR)/*.c)
 
-# Default target
-all: $(TARGET)
+OBJECTS := $(patsubst $(SRCDIR)/%.c, $(OBJDIR)/%.o, $(SOURCES))
 
-# Link object files to create executable
+.PHONY: all
+all: $(OBJDIR) $(TARGET)
+
 $(TARGET): $(OBJECTS)
-	$(CC) $(OBJECTS) -o $(TARGET)
+	$(CC) $(CFLAGS) $(OBJECTS) -o $@
 
-# Compile source files to object files
-$(OBJDIR)/%.o: $(SRCDIR)/%.c $(HEADERS)
+$(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Clean build artifacts
+$(OBJDIR):
+	mkdir -p $(OBJDIR)
+
+.PHONY: clean
 clean:
-	rm -f $(OBJECTS) $(TARGET)
-
-# Rebuild everything
-rebuild: clean all
-
-# Run the program
-run: $(TARGET)
-	./$(TARGET)
-
-# Debug build with additional flags
-debug: CFLAGS += -DDEBUG -O0
-debug: $(TARGET)
-
-# Release build with optimization
-release: CFLAGS += -O2 -DNDEBUG
-release: clean $(TARGET)
-
-# Install (optional - adjust path as needed)
-install: $(TARGET)
-	cp $(TARGET) /usr/local/bin/
-
-# Uninstall
-uninstall:
-	rm -f /usr/local/bin/$(TARGET)
-
-# Show help
-help:
-	@echo "Available targets:"
-	@echo "  all      - Build the calculator (default)"
-	@echo "  clean    - Remove object files and executable"
-	@echo "  rebuild  - Clean and build"
-	@echo "  run      - Build and run the program"
-	@echo "  debug    - Build with debug flags"
-	@echo "  release  - Build optimized release version"
-	@echo "  install  - Install to /usr/local/bin"
-	@echo "  help     - Show this help message"
-
-# Declare phony targets (targets that don't create files)
-.PHONY: all clean rebuild run debug release install uninstall help
+	rm -rf $(OBJDIR) $(TARGET)

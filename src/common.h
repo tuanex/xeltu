@@ -1,12 +1,12 @@
-#ifndef COMMON_H
-#define COMMON_H
+#ifndef XELTU_COMMON_H
+#define XELTU_COMMON_H
 
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 
-//#define DEBUG_LEXER_EXECUTION 1
-#define DEBUG_PARSER_EXECUTION 1
-#define DEBUG_TRACE_EXECUTION 1
+//#define SCANNER_DEBUG
+//#define PARSER_DEBUG
+//#define EVALUATER_DEBUG
 
 #endif

@@ -16,12 +16,11 @@ pub fn build(b: *std.Build) void {
     exe.addCSourceFiles(.{
         .files = &[_][]const u8{
             "src/debug.c",
-            "src/function.c",
+            "src/evaluater.c",
             "src/main.c",
             "src/memory.c",
-            "src/lexer.c",
             "src/parser.c",
-            "src/value.c",
+            "src/scanner.c",
         },
         .flags = &[_][]const u8{
             "-Werror",
@@ -30,6 +29,7 @@ pub fn build(b: *std.Build) void {
             "-Wno-unused-function",
             "-g",
             "-glldb",
+            "-std=c99"
         },
     });
     exe.linkLibC();

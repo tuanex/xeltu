@@ -1,38 +1,51 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "debug.h"
+
 #include "common.h"
-#include "function.h"
-#include "lexer.h"
+#include "evaluater.h"
+#include "scanner.h"
+#include "memory.h"
 #include "parser.h"
 
-static void repl() {
-	char line[1024];
+void repl() {
+	char line[128];
 	for (;;) {
 		printf("> ");
 
 		if (!fgets(line, sizeof(line), stdin)) {
 			printf("\n");
-			break;
+			continue;
 		}
 
 		line[strcspn(line, "\r\n")] = 0;
 
-		TokenArray list;
-		initTokenArray(&list);
-		tokenize(line, &list);
+		TokenArray tokens;
+		ScanningResult scanResult = scan(&tokens, line);
 
-		//Node* root = parse(&list);
+		switch (scanResult ) {
+case SCANNING_ERROR:
+	printf ("\033[31;1mThere was an error.\033[0m\n");
+	continue;
+default:
+	break;
+		}
 
-		//Result result = compile(root);
-		//printf(": ");
-		//printResult(result);
+		Node* root = parse(&tokens);
 
-		//freeNode(root);
-		freeTokenArray(&list);
+		Result* result = evaluate(root);
+
+		if (result->type == RESULT_CONST) 
+			printf(": %f\n", result->const_result);
+
+		freeResult(result);
+		freeRootNode(root);
+		freeTokenArray(&tokens);
 	}
 }
 
 int main() {
 	repl();
+	return 0;
 }

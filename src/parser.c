@@ -1,212 +1,198 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+
+#include "debug.h"
 
 #include "common.h"
-#include "debug.h"
-#include "lexer.h"
 #include "parser.h"
-#include "value.h"
+#include "scanner.h"
 
-// DEBUG INFORMATION
-#ifdef DEBUG_PARSER_EXECUTION
-int indent = 1;
-void printStartDebug(const char* msg) {
-	for (int i = 0; i < indent; i++) 
-		printf("----");
+struct Debug {
+	int indent;
+};
+struct Debug debug = {
+	.indent = 0,
+};
+void traceStartNode(const char* msg) {
+	debug.indent += 1;
+	for (int i = 0; i < debug.indent; i++) {
+		printf("-----");
+	}
 	printf("> %s\n", msg);
-	indent++;
 }
-void printEndDebug(const char* msg) {
-	indent--;
+void traceEndNode(const char* msg) {
 	printf("<");
-	for (int i = 0; i < indent; i++) 
-		printf("----");
+	for (int i = 0; i < debug.indent; i++) {
+		printf("-----");
+	}
 	printf(" %s\n", msg);
+	debug.indent -= 1;
 }
-#endif
-// END DEBUG INFORMATION
 
+void freeRootNode(Node* root) {
+	switch (root->type) {
+case NODE_CONST:
+case NODE_UNARY:
+case NODE_ERROR:
+	free(root);
+	return;
+case NODE_BINARY:
+	freeRootNode(root->binop_value.left);
+	freeRootNode(root->binop_value.right);
+	free(root);
+	}
+}
 
-typedef struct {
-	TokenArray* list;
+typedef struct Parser {
+	TokenArray* tokens;
 	Token* current;
-	Token* reading;
-	int idx;
+	int token;
 } Parser;
 Parser parser;
 
-static void initParser(TokenArray* list) {
-	parser.list = list;
-	parser.current = list->first_token;
-	parser.idx = 0;
+static void initParser(Token* token) {
+	parser.current = token;
+	parser.token = 0;
 }
-
-Node errorNode = {
-	.tag = ERROR,
-};
-
-
-Value emptyValue = {
-	.type = 0,
-	.F = 0,
-};
-
-Node* makeNode(NodeTag tag, Token token) {
-	Node* new_root = malloc(sizeof(Node));
-	new_root->tag = tag;
-	switch(tag) {
-case CONSTANT: {
-	char *new_source = NULL;
-	new_source = (char*)malloc(token.length + 1);
-
-	if (new_source == NULL) {
-		printf("Standard allocation failed.\n");
-		return &errorNode;
-	}
-
-	memcpy(new_source, token.start, token.length + 1);
-	new_source[token.length + 1] = 0;
-
-	new_root->value.leaf_val = makeValue(new_source, TOKEN_NUMBER);
-	free(new_source);
-	break;
-}
-default:
-	break;
-	}
-	return new_root;
-}
-
-void freeNode(Node* root) {
-#ifdef DEBUG_PARSER_EXECUTION
-	printf("free node %d\n", root->tag);
-#endif
-	switch (root->tag) {
-case CONSTANT:
-	free(root);
-	return;
-case UNARY:
-	free(root);
-	return;
-case BINARY:
-	freeNode(root->value.binop_val.left);
-	freeNode(root->value.binop_val.right);
-	free(root);
-	return;
-default:
-	return;
-	}
-}
-
 
 static void nextToken(void) {
-	if (parser.idx < parser.list->count) {
-		parser.idx += 1;
-		parser.current = &parser.current[1];
-	}
+	if (parser.current[1].start != NULL)
+		parser.current++;
 }
 
-int accept(TokenType type) {
-	if (parser.current->type == type) {
-		parser.reading = parser.current;
+static Node* makeNode(void) {
+	Node* root = malloc(sizeof(Node));
+	return root;
+}
+
+static void error(const char* msg) {
+	printf("%s\n", msg);
+}
+
+static bool accept(TokenType type) {
+	if (type == parser.current->type) {
 		nextToken();
 		return 1;
 	}
 	return 0;
 }
 
-int expect(TokenType type) {
-	if (accept(type)) {
+static bool expect(TokenType type) {
+	if (accept(type))
 		return 1;
-	}
-	printf("Unexpected symbol.\n");
+	error("error: Unexpected token.");
 	return 0;
 }
 
-static Node* expression(void);
-
+static Node* expression();
 static Node* factor(void) {
-#ifdef DEBUG_PARSER_EXECUTION
-	printStartDebug("Factor");
+#ifdef PARSER_DEBUG
+	traceStartNode("Factor");
 #endif
-	Node* result = &errorNode;
-	if (accept(TOKEN_IDENTIFIER)) {
-		;
-	}
-	else if (accept(TOKEN_NUMBER)) {
-		result = makeNode(CONSTANT, *parser.reading);
+
+	Node* result;
+	if (accept(TOKEN_NUMBER)) {
+		result = makeNode();
+		result->type = NODE_CONST;
+		result->const_value = atof(parser.current[-1].start);
 	}
 	else if (accept(TOKEN_LEFT_PAREN)) {
+		result = makeNode();
 		result = expression();
 		expect(TOKEN_RIGHT_PAREN);
 	}
-#ifdef DEBUG_PARSER_EXECUTION
-	printEndDebug("Factor");
+	else {
+		result = makeNode();
+		result->type = NODE_ERROR;
+	}
+	
+#ifdef PARSER_DEBUG
+	traceEndNode("Factor");
 #endif
 	return result;
 }
 
 static Node* term(void) {
-#ifdef DEBUG_PARSER_EXECUTION
-	printStartDebug("Term");
+#ifdef PARSER_DEBUG
+	traceStartNode("Term");
 #endif
-	if (parser.current->type == TOKEN_STAR || parser.current->type == TOKEN_SLASH) {
-		nextToken();
-	}
-	Node* result = factor();
 
-	while (parser.current->type == TOKEN_STAR || parser.current->type == TOKEN_SLASH) {
-		OpCode op;
-		if (parser.current->type == TOKEN_STAR) { op = BINOP_MUL; }
-		else { op = BINOP_DIV; }
+	Node* result;
+
+	result = factor();
+
+	while (parser.current->type == TOKEN_STAR || 
+		parser.current->type == TOKEN_SLASH
+	) {
+		OpCode op = 
+			(parser.current->type == TOKEN_STAR) ? BINOP_MUL : BINOP_DIV;
 		nextToken();
 		Node* right = factor();
-		Node* new_root = makeNode(BINARY, *parser.reading);
-		new_root->value.binop_val.op = op;
-		new_root->value.binop_val.left = result;
-		new_root->value.binop_val.right = right;
-		result = new_root;
+		Node* new_result = makeNode();
+		new_result->type = NODE_BINARY;
+		new_result->binop_value.op = op;
+		new_result->binop_value.left = result;
+		new_result->binop_value.right = right;
+		result = new_result;
 	}
-#ifdef DEBUG_PARSER_EXECUTION
-	printEndDebug("Term");
+
+#ifdef PARSER_DEBUG
+	traceEndNode("Term");
 #endif
 	return result;
 }
 
 static Node* expression(void) {
-#ifdef DEBUG_PARSER_EXECUTION
-	printStartDebug("Expression");
+#ifdef PARSER_DEBUG
+	traceStartNode("Expression");
 #endif
-	if (parser.current->type == TOKEN_PLUS || parser.current->type == TOKEN_MINUS) {
+
+	Node* result;
+
+	if (parser.current->type == TOKEN_PLUS || 
+		parser.current->type == TOKEN_MINUS
+	) {
+		UnCode un =
+			(parser.current->type == TOKEN_PLUS) ? UNOP_POS: UNOP_NEG;
 		nextToken();
+		// Make unary
+		result = makeNode();
+		result->type = NODE_UNARY;
+		result->unop_value.un = un;
+		result->unop_value.operand = term();
 	}
-	Node* result = term();
-	while (parser.current->type == TOKEN_PLUS || parser.current->type == TOKEN_MINUS) {
-		OpCode op;
-		if (parser.current->type == TOKEN_PLUS) { op = BINOP_ADD; }
-		else { op = BINOP_SUB; }
+	else {
+		result = term();
+	}
+
+	while (parser.current->type == TOKEN_PLUS || 
+		parser.current->type == TOKEN_MINUS
+	) {
+		OpCode op = 
+			(parser.current->type == TOKEN_PLUS) ? BINOP_ADD : BINOP_SUB;
 		nextToken();
 		Node* right = term();
-		Node* new_root = makeNode(BINARY, *parser.reading);
-		new_root->value.binop_val.op = op;
-		new_root->value.binop_val.left = result;
-		new_root->value.binop_val.right = right;
-		result = new_root;
+
+		Node* new_result = makeNode();
+		new_result->type = NODE_BINARY;
+		new_result->binop_value.op = op;
+		new_result->binop_value.left = result;
+		new_result->binop_value.right = right;
+		result = new_result;
 	}
-#ifdef DEBUG_PARSER_EXECUTION
-	printEndDebug("Expression");
+
+#ifdef PARSER_DEBUG
+	traceEndNode("Expression");
 #endif
 	return result;
 }
 
 Node* parse(TokenArray* tokens) {
-
-	initParser(tokens);
-
+	initParser(tokens->tokens);
 	Node* root = expression();
 
-#ifdef DEBUG_PARSER_EXECUTION
+#ifdef PARSER_DEBUG
+	printf("Disassembling Root Node\n");
 	disassembleRootNode(root, 0);
 #endif
 

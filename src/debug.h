@@ -1,15 +1,17 @@
-#ifndef DEBUG_H
-#define DEBUG_H
+#ifndef XELTU_DEBUG_H
+#define XELTU_DEBUG_H
 
 #include "common.h"
-#include "lexer.h"
+#include "evaluater.h"
 #include "parser.h"
-#include "value.h"
+#include "scanner.h"
 
 void disassembleToken(Token);
-void disassembleTokenArray(TokenArray*);
+void disassembleTokenArray(TokenArray);
 
-void disassembleNode(Value, int);
+void disassembleOpCode(OpCode, int);
 void disassembleRootNode(Node*, int);
+
+void disassembleResult(Result*);
 
 #endif

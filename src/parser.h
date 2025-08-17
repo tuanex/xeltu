@@ -1,39 +1,33 @@
-#ifndef PARSER_H
-#define PARSER_H
+#ifndef XELTU_PARSER_H
+#define XELTU_PARSER_H
 
-#include "lexer.h"
-#include "value.h"
+#include "scanner.h"
 
-typedef enum {
-	BINOP_ADD, 
-	BINOP_SUB, 
-	BINOP_MUL, 
-	BINOP_DIV
-} OpCode;
+typedef enum { UNOP_POS, UNOP_NEG } UnCode;
+typedef enum { BINOP_ADD, BINOP_SUB, BINOP_MUL, BINOP_DIV, } OpCode;
 
-typedef enum { CONSTANT, UNARY, BINARY, ERROR } NodeTag;
+typedef enum { NODE_CONST, NODE_UNARY, NODE_BINARY, NODE_ERROR, } NodeTag;
 
 typedef struct Node {
-	NodeTag tag;
+	NodeTag type;
 
 	union {
-		Value leaf_val;
+		float const_value;
 
 		struct {
-			enum {UNOP_POS, UNOP_MIN} op;
-			struct Node *operand;
-		} unop_val;
+			UnCode un;
+			struct Node* operand;
+		} unop_value;
 
 		struct {
 			OpCode op;
-            struct Node *left;
-            struct Node *right;
-        } binop_val;
-	} value;
+			struct Node* left;
+			struct Node* right;
+		} binop_value;
+	};
 } Node;
 
+void freeRootNode(Node*);
 Node* parse(TokenArray*);
-Node* makeNode(NodeTag, Token);
-void freeNode(Node*);
 
 #endif
