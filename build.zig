@@ -21,11 +21,13 @@ pub fn build(b: *std.Build) void {
             "src/memory.c",
             "src/parser.c",
             "src/scanner.c",
+            "src/table.c",
         },
         .flags = &[_][]const u8{
             "-Werror",
             "-Wall",
             "-Wno-unused-variable",
+            "-Wno-unused-parameter",
             "-Wno-unused-function",
             "-g",
             "-glldb",

@@ -1,18 +1,20 @@
 #ifndef XELTU_PARSER_H
 #define XELTU_PARSER_H
 
+#include "common.h"
 #include "scanner.h"
+#include "value.h"
 
 typedef enum { UNOP_POS, UNOP_NEG } UnCode;
-typedef enum { BINOP_ADD, BINOP_SUB, BINOP_MUL, BINOP_DIV, } OpCode;
+typedef enum { BINOP_ADD, BINOP_SUB, BINOP_MUL, BINOP_DIV, BINOP_ASS} OpCode;
 
-typedef enum { NODE_CONST, NODE_UNARY, NODE_BINARY, NODE_ERROR, } NodeTag;
+typedef enum { NODE_LEAF, NODE_UNARY, NODE_BINARY, NODE_ERROR, } NodeType;
 
 typedef struct Node {
-	NodeTag type;
+	NodeType type;
 
 	union {
-		float const_value;
+		Value value;
 
 		struct {
 			UnCode un;

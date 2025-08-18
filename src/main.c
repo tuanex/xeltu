@@ -8,9 +8,13 @@
 #include "scanner.h"
 #include "memory.h"
 #include "parser.h"
+#include "table.h"
 
 void repl() {
 	char line[128];
+	HashMap map;
+	initHashMap(&map);
+
 	for (;;) {
 		printf("> ");
 
@@ -34,15 +38,15 @@ default:
 
 		Node* root = parse(&tokens);
 
-		Result* result = evaluate(root);
+		Result result = evaluate(root, &map);
 
-		if (result->type == RESULT_CONST) 
-			printf(": %f\n", result->const_result);
+		if (result.type == RESULT_CONST) 
+			printf(": %f\n", result.value.constant);
 
-		freeResult(result);
 		freeRootNode(root);
 		freeTokenArray(&tokens);
 	}
+	freeHashMap(&map);
 }
 
 int main() {

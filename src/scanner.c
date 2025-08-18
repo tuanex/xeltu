@@ -71,8 +71,20 @@ static bool isAtEnd() {
 	return *scanner.current == '\0';
 }
 
+static bool isAlpha(const char c) {
+	return ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z');
+}
+
 static bool isDigit(const char c) {
 	return '0' <= c && c <= '9';
+}
+
+static Token identifier() {
+	while (isDigit(peek()) || isAlpha(peek())) {
+		advance();
+	}
+
+	return makeToken(TOKEN_IDENTIFIER);
 }
 
 static Token number() {
@@ -94,6 +106,7 @@ static Token scanToken() {
 
 	if (isAtEnd()) return makeToken(TOKEN_EOF);
 
+	if (isAlpha(peek())) return identifier();
 	if (isDigit(peek())) return number();
 
 	char c = advance();
@@ -105,6 +118,11 @@ static Token scanToken() {
 		case '/': { return makeToken(TOKEN_SLASH); }
 		case '(': { return makeToken(TOKEN_LEFT_PAREN); break;}
 		case ')': { return makeToken(TOKEN_RIGHT_PAREN); }
+		case ':': { 
+			char next = advance();
+			if (next == '=') { return makeToken(TOKEN_COLON_EQUAL); }
+			else { return errorToken("Unexpected character."); }
+		}
 		default: {
 			return errorToken("Unexpected character.");
 		}

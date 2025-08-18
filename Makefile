@@ -1,6 +1,6 @@
 CC := gcc
 
-CFLAGS := -g -Wall -Wextra -Werror
+CFLAGS := -g -Wall -Wextra -Werror -Wno-unused-function -Wno-unused-parameter
 
 SRCDIR := src
 OBJDIR := obj

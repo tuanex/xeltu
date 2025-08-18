@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "debug.h"
 
@@ -31,7 +32,9 @@ void traceEndNode(const char* msg) {
 
 void freeRootNode(Node* root) {
 	switch (root->type) {
-case NODE_CONST:
+case NODE_LEAF:
+	if (root->value.type == VALUE_VAR) free(root->value.name);
+	__attribute__ ((fallthrough));
 case NODE_UNARY:
 case NODE_ERROR:
 	free(root);
@@ -84,32 +87,45 @@ static bool expect(TokenType type) {
 	return 0;
 }
 
-static Node* expression();
+static Node* expression(void);
 static Node* factor(void) {
 #ifdef PARSER_DEBUG
 	traceStartNode("Factor");
 #endif
 
-	Node* result;
-	if (accept(TOKEN_NUMBER)) {
-		result = makeNode();
-		result->type = NODE_CONST;
-		result->const_value = atof(parser.current[-1].start);
+	Node* node;
+	if (accept(TOKEN_IDENTIFIER)) {
+		node = makeNode();
+		node->type = NODE_LEAF;
+		node->value.defined = false;
+		node->value.type = VALUE_VAR;
+		node->value.name = (char *)malloc(sizeof(char) * (parser.current[-1].length + 1));
+		for (int i = 0; i < parser.current[-1].length; i++) {
+			node->value.name[i] = parser.current[-1].start[i];
+		}
+		node->value.name[parser.current[-1].length] = '\0';
+	}
+	else if (accept(TOKEN_NUMBER)) {
+		node = makeNode();
+		node->type = NODE_LEAF;
+		node->value.defined = true;
+		node->value.type = VALUE_CONST;
+		node->value.constant = atof(parser.current[-1].start);
 	}
 	else if (accept(TOKEN_LEFT_PAREN)) {
-		result = makeNode();
-		result = expression();
+		node = makeNode();
+		node = expression();
 		expect(TOKEN_RIGHT_PAREN);
 	}
 	else {
-		result = makeNode();
-		result->type = NODE_ERROR;
+		node = makeNode();
+		node->type = NODE_ERROR;
 	}
 	
 #ifdef PARSER_DEBUG
 	traceEndNode("Factor");
 #endif
-	return result;
+	return node;
 }
 
 static Node* term(void) {
@@ -117,9 +133,9 @@ static Node* term(void) {
 	traceStartNode("Term");
 #endif
 
-	Node* result;
+	Node* node;
 
-	result = factor();
+	node = factor();
 
 	while (parser.current->type == TOKEN_STAR || 
 		parser.current->type == TOKEN_SLASH
@@ -128,18 +144,18 @@ static Node* term(void) {
 			(parser.current->type == TOKEN_STAR) ? BINOP_MUL : BINOP_DIV;
 		nextToken();
 		Node* right = factor();
-		Node* new_result = makeNode();
-		new_result->type = NODE_BINARY;
-		new_result->binop_value.op = op;
-		new_result->binop_value.left = result;
-		new_result->binop_value.right = right;
-		result = new_result;
+		Node* new_node = makeNode();
+		new_node->type = NODE_BINARY;
+		new_node->binop_value.op = op;
+		new_node->binop_value.left = node;
+		new_node->binop_value.right = right;
+		node = new_node;
 	}
 
 #ifdef PARSER_DEBUG
 	traceEndNode("Term");
 #endif
-	return result;
+	return node;
 }
 
 static Node* expression(void) {
@@ -147,7 +163,7 @@ static Node* expression(void) {
 	traceStartNode("Expression");
 #endif
 
-	Node* result;
+	Node* node;
 
 	if (parser.current->type == TOKEN_PLUS || 
 		parser.current->type == TOKEN_MINUS
@@ -156,13 +172,13 @@ static Node* expression(void) {
 			(parser.current->type == TOKEN_PLUS) ? UNOP_POS: UNOP_NEG;
 		nextToken();
 		// Make unary
-		result = makeNode();
-		result->type = NODE_UNARY;
-		result->unop_value.un = un;
-		result->unop_value.operand = term();
+		node = makeNode();
+		node->type = NODE_UNARY;
+		node->unop_value.un = un;
+		node->unop_value.operand = term();
 	}
 	else {
-		result = term();
+		node = term();
 	}
 
 	while (parser.current->type == TOKEN_PLUS || 
@@ -172,24 +188,50 @@ static Node* expression(void) {
 			(parser.current->type == TOKEN_PLUS) ? BINOP_ADD : BINOP_SUB;
 		nextToken();
 		Node* right = term();
-
-		Node* new_result = makeNode();
-		new_result->type = NODE_BINARY;
-		new_result->binop_value.op = op;
-		new_result->binop_value.left = result;
-		new_result->binop_value.right = right;
-		result = new_result;
+		Node* new_node = makeNode();
+		new_node->type = NODE_BINARY;
+		new_node->binop_value.op = op;
+		new_node->binop_value.left = node;
+		new_node->binop_value.right = right;
+		node = new_node;
 	}
 
 #ifdef PARSER_DEBUG
 	traceEndNode("Expression");
 #endif
-	return result;
+	return node;
+}
+
+static Node* assignment(void) {
+#ifdef PARSER_DEBUG
+	traceStartNode("Assignment");
+#endif
+
+	Node* node;
+
+	node = expression();
+
+	if (parser.current->type == TOKEN_COLON_EQUAL) {
+		OpCode op = BINOP_ASS;
+		nextToken();
+		Node* right = expression();
+		Node* new_node = makeNode();
+		new_node->type = NODE_BINARY;
+		new_node->binop_value.op = op;
+		new_node->binop_value.left = node;
+		new_node->binop_value.right = right;
+		node = new_node;
+	}
+
+#ifdef PARSER_DEBUG
+	traceEndNode("Assignment");
+#endif
+	return node;
 }
 
 Node* parse(TokenArray* tokens) {
 	initParser(tokens->tokens);
-	Node* root = expression();
+	Node* root = assignment();
 
 #ifdef PARSER_DEBUG
 	printf("Disassembling Root Node\n");

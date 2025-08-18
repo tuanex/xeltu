@@ -12,6 +12,6 @@ void disassembleTokenArray(TokenArray);
 void disassembleOpCode(OpCode, int);
 void disassembleRootNode(Node*, int);
 
-void disassembleResult(Result*);
+void disassembleResult(Result);
 
 #endif

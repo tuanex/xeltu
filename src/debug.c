@@ -6,8 +6,11 @@
 
 void disassembleToken(Token token) {
 	switch (token.type) {
-case TOKEN_NUMBER:
-	printf("TOKEN_NUMBER\n    ");
+case TOKEN_LEFT_PAREN:
+	printf("TOKEN_LEFT_PAREN\n");
+	break;
+case TOKEN_RIGHT_PAREN:
+	printf("TOKEN_RIGHT_PAREN\n");
 	break;
 case TOKEN_PLUS:
 case TOKEN_MINUS:
@@ -15,11 +18,14 @@ case TOKEN_STAR:
 case TOKEN_SLASH:
 	printf("TOKEN_arithmetic\n    ");
 	break;
-case TOKEN_LEFT_PAREN:
-	printf("TOKEN_LEFT_PAREN\n");
+case TOKEN_COLON_EQUAL:
+	printf("TOKEN_COLON_EQUAL\n");
+	return;
+case TOKEN_IDENTIFIER:
+	printf("TOKEN_IDENTIFIER\n    ");
 	break;
-case TOKEN_RIGHT_PAREN:
-	printf("TOKEN_RIGHT_PAREN\n");
+case TOKEN_NUMBER:
+	printf("TOKEN_NUMBER\n    ");
 	break;
 case TOKEN_EOF:
 	printf("TOKEN_EOF\n");
@@ -28,6 +34,7 @@ case TOKEN_ERROR:
 	printf("TOKEN_ERROR\n    ");
 	break;
 default:
+	printf("UNKNOWN_TOKEN\n    ");
 	break;
 	}
 	for (int i = 0; i < token.length; i++) {
@@ -75,16 +82,24 @@ case BINOP_MUL:
 case BINOP_DIV:
 	printf("BINOP_DIV\n");
 	break;
+case BINOP_ASS:
+	printf("BINOP_ASS\n");
+	break;
 	}
 }
 
 void disassembleRootNode(Node* root, int level) {
 	switch (root->type) {
-case NODE_CONST:
+case NODE_LEAF:
 	for (int i = 0; i < level; i++) {
 		printf("    ");
 	}
-	printf("CONST %f\n", root->const_value);
+	if (root->value.type == VALUE_CONST) { 
+		printf("CONST %f\n", root->value.constant);
+	}
+	else {
+		printf("VAR %d\n", root->value.defined);
+	}
 	break;
 case NODE_UNARY:
 	disassembleUnCode(root->unop_value.un, level);
@@ -99,16 +114,21 @@ case NODE_BINARY:
 }
 
 
-void disassembleResult(Result* result) {
-	switch (result->type) {
+void disassembleResult(Result result) {
+	switch (result.type) {
 case RESULT_CONST:
-	printf("RESULT_CONST %f\n", result->const_result);
+	printf("RESULT_CONST %f\n", result.value.constant);
 	break;
 case RESULT_VAR:
-	printf("RESULT_VAR");
+	printf("RESULT_VAR\n");
+	break;
+case RESULT_SUCCESS:
+	printf("RESULT_SUCCESS\n");
 	break;
 case RESULT_ERROR:
-	printf("RESULT_ERROR");
+	printf("RESULT_ERROR\n");
 	break;
+default:
+	printf("ERROR IN DISASSEMBLING\n");
 	}
 }
