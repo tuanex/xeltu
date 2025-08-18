@@ -26,11 +26,8 @@ pub fn build(b: *std.Build) void {
         .flags = &[_][]const u8{
             "-Werror",
             "-Wall",
-            "-Wno-unused-variable",
-            "-Wno-unused-parameter",
-            "-Wno-unused-function",
+            "-Wextra",
             "-g",
-            "-glldb",
             "-std=c99"
         },
     });

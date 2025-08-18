@@ -34,13 +34,22 @@ void freeHashMap(HashMap* map) {
 		}
 	}
 }
+
+static char* my_strdup(const char* string) {
+	if (string == NULL) return NULL;
+	int length = strlen(string) + 1;
+	char* copy = calloc(length, sizeof(char));
+	if (copy == NULL) return NULL;
+	memcpy(copy, string, length);
+	return copy;
+}
         
 bool insertHashMap(HashMap* map, const char* key, Value value) {
 	uint32_t index = hashFunction(key) % HASHMAP_SIZE;
 
 	Entry* entry = malloc(sizeof(Entry));
 	if (entry == NULL) return false;
-	entry->key = strdup(key);
+	entry->key = my_strdup(key);
 	if (entry->key == NULL) return false;
 	entry->value = value;
 

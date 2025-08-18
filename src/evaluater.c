@@ -24,20 +24,6 @@ static Result errorResult(const char* fmt, ...) {
 }
 
 static Result visitNode(Node*);
-static Result visitConst(Node* root) {
-#ifdef EVALUATER_DEBUG
-	printf("visitConst\n");
-#endif
-	return errorResult("visitConst");
-}
-
-static Result visitVar(Node* root) {
-#ifdef EVALUATER_DEBUG
-	printf("visitVar\n");
-#endif
-	return errorResult("visitVar");
-}
-
 static Result visitLeaf(Value value) {
 #ifdef EVALUATER_DEBUG
 	printf("visitLeaf\n");
