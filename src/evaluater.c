@@ -79,7 +79,7 @@ default: break; \
 		if (right.type != RESULT_CONST) { errorResult("Trying to assign non-constant");}
 
 		if (insertHashMap(localMap, root->binop_value.left->value.name, right.value)) {
-			//return (Result) { .type = RESULT_SUCCESS };
+			printf("INSERTED\n");
 			Result result;
 			result.type = RESULT_SUCCESS;
 			return result;

@@ -19,36 +19,52 @@ void initHashMap(HashMap* map) {
 	}
 }
 
+static void freeEntry(Entry* entry) {
+	if (entry->next != NULL) { freeEntry(entry->next); }
+	free(entry->key);
+	free(entry);
+}
+
 void freeHashMap(HashMap* map) {
 	for (int i = 0; i < HASHMAP_SIZE; i++) {
-		free(map->bucket[i]);
+		Entry* entry = map->bucket[i];
+		if (entry != NULL) {
+			printf("NOT NULL\n");
+			freeEntry(entry);
+		}
 	}
 }
         
 bool insertHashMap(HashMap* map, const char* key, Value value) {
-	uint32_t index = hashFunction(key);
-	if (map->bucket[index] != NULL) {
-		Entry* oldEntry = map->bucket[index];
-		map->bucket[index] = malloc(sizeof(Entry));
-		map->bucket[index]->key = key;
-		map->bucket[index]->value = value;
-		map->bucket[index]->next = oldEntry;
-	}
-	else {
-		map->bucket[index] = malloc(sizeof(Entry));
-		map->bucket[index]->key = key;
-		map->bucket[index]->value = value;
+	uint32_t index = hashFunction(key) % HASHMAP_SIZE;
+
+	Entry* entry = malloc(sizeof(Entry));
+	if (entry == NULL) return false;
+	entry->key = strdup(key);
+	if (entry->key == NULL) return false;
+	entry->value = value;
+
+	if (map->bucket[index] == NULL) {
+		map->bucket[index] = entry;
 		map->bucket[index]->next = NULL;
+		return entry;
 	}
-	return (map->bucket[index] != NULL);
+	entry->next = map->bucket[index];
+	map->bucket[index] = entry;
+	return true;
+}
+
+static bool cmpKeys(const char* key, const char* entryKey) {
+	return (key != NULL && entryKey != NULL && strcmp(key, entryKey));
 }
 
 Entry* getHashMap(HashMap* map, const char* key) {
 	uint32_t index = hashFunction(key) % HASHMAP_SIZE;
 	Entry* entry = map->bucket[index];
-	for (; entry != NULL && strcmp(key, entry->key);) {
-		entry = map->bucket[index]->next;
-	}
+	if (entry == NULL) return NULL;
+
+	for (;entry != NULL && cmpKeys(key, entry->key); entry = entry->next) {}
+
 	return entry;
 }
 

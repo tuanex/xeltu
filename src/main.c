@@ -25,6 +25,8 @@ void repl() {
 
 		line[strcspn(line, "\r\n")] = 0;
 
+		if (!strcmp(line, "quit")) break;
+
 		TokenArray tokens;
 		ScanningResult scanResult = scan(&tokens, line);
 

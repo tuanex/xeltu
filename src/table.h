@@ -5,7 +5,7 @@
 #include "value.h"
 
 typedef struct Entry {
-	const char* key;
+	char* key;
 	Value value;
 	struct Entry* next;
 } Entry;

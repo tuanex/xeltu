@@ -7,6 +7,6 @@
 
 //#define SCANNER_DEBUG
 //#define PARSER_DEBUG
-#define EVALUATER_DEBUG
+//#define EVALUATER_DEBUG
 
 #endif

@@ -137,6 +137,7 @@ ScanningResult scan(TokenArray* tokens, const char* source) {
 	ScanningResult result = SCANNING_OK;
 
 	Token token;
+	token.type = TOKEN_NUMBER;
 	for (; token.type != TOKEN_EOF;) {
 		token = scanToken();
 		if (token.type == TOKEN_ERROR) result = SCANNING_ERROR;
